@@ -1169,7 +1169,7 @@ braincode idx --all
 - 输入 provider API key 后，setup 优先调用 OpenAI-compatible `/models` 拉取模型列表，并提供上下键选择；拉取失败时降级为手动输入 model
 - YAML config 只保存 provider、`base_url`、`model` 和 env var 名；不保存真实 API key/token
 - env 文件权限必须设为 `0600`，BrainCode 启动时自动加载该 env 文件，但不覆盖调用方已经显式设置的环境变量
-- 当启用 remote server 模式且 server token 环境变量未设置时，setup 生成一次强随机 `BRAINCODE_SERVER_TOKEN` 并写入受保护 env 文件；该 token 不写入 YAML，不由 `serve` 临时生成
+- 当启用 remote server 模式且 server token 环境变量未设置时，setup 生成一次强随机 `BRAINCODE_SERVER_TOKEN`，在交互式终端中展示一次并提示用户保存；用户按 Enter 后从当前屏幕清除展示内容，同时写入受保护 env 文件
 - `braincode doctor` 负责检查 config、路径、项目 roots、模型/远程所需环境变量
 - `braincode config path/show/validate/edit` 提供固定配置维护入口
 - setup 不改变 MCP thin-service 工具面

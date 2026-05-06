@@ -147,6 +147,64 @@ async function promptSecret(
   });
 }
 
+async function revealGeneratedSecretOnce(inputOptions: {
+  rl: Interface;
+  envName: string;
+  value: string;
+  envFilePath: string;
+}): Promise<void> {
+  const lines = [
+    `Generated ${inputOptions.envName}. Save this value now:`,
+    `${inputOptions.envName}="${inputOptions.value}"`,
+    `It will also be stored in ${inputOptions.envFilePath}.`,
+    "Press Enter after saving it; the token will be cleared from the screen."
+  ];
+
+  if (!input.isTTY || !("setRawMode" in input)) {
+    output.write(`${lines.join("\n")}\n`);
+    await promptText(inputOptions.rl, "Press Enter after saving it");
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const wasRaw = input.isRaw;
+    const clearRenderedLines = (): void => {
+      moveCursor(output, 0, -lines.length);
+      for (let index = 0; index < lines.length; index += 1) {
+        clearLine(output, 0);
+        cursorTo(output, 0);
+        output.write(index === lines.length - 1 ? "" : "\n");
+      }
+      moveCursor(output, 0, -(lines.length - 1));
+      cursorTo(output, 0);
+    };
+    const cleanup = (): void => {
+      input.off("data", onData);
+      input.setRawMode(wasRaw);
+      inputOptions.rl.resume();
+    };
+    const onData = (chunk: Buffer): void => {
+      const text = chunk.toString("utf8");
+      if (text === "\u0003") {
+        cleanup();
+        reject(new Error("setup cancelled."));
+        return;
+      }
+      if (text === "\r" || text === "\n" || text === "\r\n") {
+        clearRenderedLines();
+        cleanup();
+        resolve();
+      }
+    };
+
+    output.write(`${lines.join("\n")}\n`);
+    inputOptions.rl.pause();
+    input.setRawMode(true);
+    input.resume();
+    input.on("data", onData);
+  });
+}
+
 async function promptSelect(
   rl: Interface,
   label: string,
@@ -711,7 +769,14 @@ async function buildInteractiveConfig(
       remoteOptions.serverPort = Number(await promptText(rl, "Server port", String(config.server.port)));
       remoteOptions.serverTokenEnv = await promptText(rl, "Server token env", config.server.authTokenEnv ?? "BRAINCODE_SERVER_TOKEN");
       if (remoteOptions.serverTokenEnv && !process.env[remoteOptions.serverTokenEnv]) {
-        envUpdates[remoteOptions.serverTokenEnv] = generateServerToken();
+        const serverToken = generateServerToken();
+        await revealGeneratedSecretOnce({
+          rl,
+          envName: remoteOptions.serverTokenEnv,
+          value: serverToken,
+          envFilePath: getEnvFilePath(loaded.path)
+        });
+        envUpdates[remoteOptions.serverTokenEnv] = serverToken;
       }
     }
     return {

@@ -110,6 +110,26 @@ Important notes
 - Package version remains `0.1.0`.
 - Non-interactive setup still does not accept raw API keys by design, so secrets do not land in shell history.
 
+Session: 2026-05-06
+
+What was implemented
+- Adjusted interactive remote server setup so generated `BRAINCODE_SERVER_TOKEN` values are displayed once immediately after generation.
+- The setup flow now pauses and asks the user to save the generated token.
+- After the user presses Enter, the generated token lines are cleared from the current terminal screen.
+- The generated token is still written to the protected sibling env file, and never written to YAML.
+- Updated README and DESIGN.md to document the one-time token display behavior.
+
+Current status
+- `./init.sh` passes
+- `npm run typecheck` passes
+- `npm test` passes
+- `npm run build` passes
+- `npm pack --dry-run` passes and reports `braincode@0.1.0`
+- `npm run smoke:mcp` passes
+
+Important notes
+- Package version remains `0.1.0`.
+
 Session: 2026-05-01
 
 What was implemented
